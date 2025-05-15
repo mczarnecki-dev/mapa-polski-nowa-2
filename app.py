@@ -102,7 +102,7 @@ if input_z and input_do and input_z != input_do:
         st_folium(mapa, width=900, height=700)
 
     with kol2:
-        st.markdown("<div style='font-size:12px;'>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size:8px;'>", unsafe_allow_html=True)
 
         st.header("Informacje o wybranej trasie")
         dystans_wybranej = dystans_trasy(wybrany_start_lat, wybrany_start_lon, wybrany_koniec_lat, wybrany_koniec_lon)
