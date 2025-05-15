@@ -39,75 +39,20 @@ def trasy_podobne_azymut(trasa_azymut, trasy_df, wybrany_koniec_lat, wybrany_kon
 def dystans_trasy(lat1, lon1, lat2, lon2):
     return bliskosc_km((lat1, lon1), (lat2, lon2))
 
-# --- Styl CSS dla mapy i estetyki ---
+# --- Styl CSS wymuszający rozmiar mapy ---
 st.markdown(
     """
     <style>
     .folium-map {
         width: 100% !important;
-        height: 700px !important;
-        border-radius: 10px;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        margin-bottom: 20px;
-    }
-    .stSelectbox > div > div {
-        border-radius: 8px;
-        border: 1px solid #ddd;
-        padding: 8px;
-    }
-    .stSlider > div {
-        margin-top: 15px;
-        margin-bottom: 15px;
-    }
-    .stButton>button {
-        background-color: #4CAF50;
-        color: white;
-        border-radius: 8px;
-        padding: 8px 16px;
-        font-weight: bold;
-        transition: background-color 0.3s ease;
-    }
-    .stButton>button:hover {
-        background-color: #45a049;
-    }
-    .info-panel {
-        padding: 15px;
-        background-color: #f9f9f9;
-        border-radius: 10px;
-        box-shadow: 0 3px 6px rgba(0,0,0,0.1);
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
-    .info-panel h2 {
-        color: #2c3e50;
-        border-bottom: 2px solid #4CAF50;
-        padding-bottom: 5px;
-        margin-bottom: 15px;
-    }
-    .info-panel .route-info {
-        margin-bottom: 20px;
-    }
-    .similar-route {
-        border-left: 4px solid #4CAF50;
-        padding-left: 10px;
-        margin-bottom: 10px;
-        background-color: #e8f5e9;
-        border-radius: 6px;
-    }
-    .similar-route:hover {
-        background-color: #c8e6c9;
-    }
-    .tooltip-marker {
-        white-space: nowrap;
-        max-width: 150px;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        height: 900px !important;
     }
     </style>
     """,
     unsafe_allow_html=True
 )
 
-st.title("🗺️ Mapa Polski - połączenia i trasy podobne")
+st.title("Mapa Polski - połączenia i trasy podobne")
 
 miejscowosci_lista = miejscowosci["Nazwa"].dropna().unique()
 
@@ -143,67 +88,40 @@ if input_z and input_do and input_z != input_do:
     with kol1:
         mapa = folium.Map(location=[srodek_lat, srodek_lon], zoom_start=7)
 
-        folium.Marker(
-            [wybrany_start_lat, wybrany_start_lon], 
-            tooltip=f"<div class='tooltip-marker'>Start: {input_z}</div>", 
-            icon=folium.Icon(color='green', icon='play', prefix='fa')).add_to(mapa)
-
-        folium.Marker(
-            [wybrany_koniec_lat, wybrany_koniec_lon], 
-            tooltip=f"<div class='tooltip-marker'>Cel: {input_do}</div>", 
-            icon=folium.Icon(color='red', icon='stop', prefix='fa')).add_to(mapa)
-
-        folium.PolyLine(
-            locations=[[wybrany_start_lat, wybrany_start_lon], [wybrany_koniec_lat, wybrany_koniec_lon]],
-            color="blue", weight=5, opacity=0.8).add_to(mapa)
+        folium.Marker([wybrany_start_lat, wybrany_start_lon], tooltip=f"Start: {input_z}", icon=folium.Icon(color='green')).add_to(mapa)
+        folium.Marker([wybrany_koniec_lat, wybrany_koniec_lon], tooltip=f"Cel: {input_do}", icon=folium.Icon(color='red')).add_to(mapa)
+        folium.PolyLine(locations=[[wybrany_start_lat, wybrany_start_lon], [wybrany_koniec_lat, wybrany_koniec_lon]],
+                        color="blue", weight=5, opacity=0.8).add_to(mapa)
 
         for _, r in podobne.iterrows():
-            folium.Marker(
-                [r['start_lat'], r['start_lon']], 
-                tooltip=f"<div class='tooltip-marker'>Start: {r['start_nazwa']}</div>", 
-                icon=folium.Icon(color='lightgreen')).add_to(mapa)
-
-            folium.Marker(
-                [r['koniec_lat'], r['koniec_lon']], 
-                tooltip=f"<div class='tooltip-marker'>Cel: {r['koniec_nazwa']}</div>", 
-                icon=folium.Icon(color='lightred')).add_to(mapa)
-
-            folium.PolyLine(
-                locations=[[r['start_lat'], r['start_lon']], [r['koniec_lat'], r['koniec_lon']]],
-                color="green", weight=4, opacity=0.6, dash_array='5').add_to(mapa)
+            folium.Marker([r['start_lat'], r['start_lon']], tooltip=f"Start: {r['start_nazwa']}", icon=folium.Icon(color='lightgreen')).add_to(mapa)
+            folium.Marker([r['koniec_lat'], r['koniec_lon']], tooltip=f"Cel: {r['koniec_nazwa']}", icon=folium.Icon(color='lightred')).add_to(mapa)
+            folium.PolyLine(locations=[[r['start_lat'], r['start_lon']], [r['koniec_lat'], r['koniec_lon']]],
+                            color="green", weight=4, opacity=0.6, dash_array='5').add_to(mapa)
 
         st_folium(mapa, width=900, height=700)
 
     with kol2:
-        st.markdown("<div class='info-panel'>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size:12px;'>", unsafe_allow_html=True)
 
-        st.markdown("## ℹ️ Informacje o wybranej trasie")
+        st.header("Informacje o wybranej trasie")
         dystans_wybranej = dystans_trasy(wybrany_start_lat, wybrany_start_lon, wybrany_koniec_lat, wybrany_koniec_lon)
-        st.markdown(f"""
-        <div class="route-info">
-        <p><b>Start:</b> {input_z}</p>
-        <p><b>Cel:</b> {input_do}</p>
-        <p><b>Dystans:</b> {dystans_wybranej:.2f} km</p>
-        <p><b>Azymut:</b> {wybrany_azymut:.1f}°</p>
-        </div>
-        """, unsafe_allow_html=True)
-
+        st.write(f"Start: **{input_z}**")
+        st.write(f"Cel: **{input_do}**")
+        st.write(f"Dystans: **{dystans_wybranej:.2f} km**")
+        st.write(f"Azymut: **{wybrany_azymut:.1f}°**")
         st.markdown("---")
-        st.markdown("## 🚗 Podobne trasy")
-
+        st.header("Podobne trasy")
         if podobne.empty:
             st.write("Brak podobnych tras w zadanym zakresie.")
         else:
             for i, r in podobne.iterrows():
                 d = dystans_trasy(r['start_lat'], r['start_lon'], r['koniec_lat'], r['koniec_lon'])
+                st.write(f"**{r['start_nazwa']}** → **{r['koniec_nazwa']}**")
+                st.write(f"  - Dystans: {d:.2f} km")
                 az = oblicz_azymut(r['start_lat'], r['start_lon'], r['koniec_lat'], r['koniec_lon'])
-                st.markdown(f"""
-                <div class="similar-route">
-                    <b>{r['start_nazwa']}</b> → <b>{r['koniec_nazwa']}</b><br>
-                    Dystans: {d:.2f} km<br>
-                    Azymut: {az:.1f}°
-                </div>
-                """, unsafe_allow_html=True)
+                st.write(f"  - Azymut: {az:.1f}°")
+                st.markdown("---")
 
         st.markdown("</div>", unsafe_allow_html=True)
 
