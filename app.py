@@ -102,6 +102,8 @@ if input_z and input_do and input_z != input_do:
         st_folium(mapa, width=900, height=700)
 
     with kol2:
+        st.markdown("<div style='font-size:12px;'>", unsafe_allow_html=True)
+
         st.header("Informacje o wybranej trasie")
         dystans_wybranej = dystans_trasy(wybrany_start_lat, wybrany_start_lon, wybrany_koniec_lat, wybrany_koniec_lon)
         st.write(f"Start: **{input_z}**")
@@ -120,6 +122,8 @@ if input_z and input_do and input_z != input_do:
                 az = oblicz_azymut(r['start_lat'], r['start_lon'], r['koniec_lat'], r['koniec_lon'])
                 st.write(f"  - Azymut: {az:.1f}°")
                 st.markdown("---")
+
+        st.markdown("</div>", unsafe_allow_html=True)
 
 else:
     st.info("Wybierz miejscowości startową i docelową, aby wyświetlić trasę i podobne połączenia.")
