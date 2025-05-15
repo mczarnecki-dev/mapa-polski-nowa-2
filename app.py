@@ -111,7 +111,7 @@ if input_z and input_do and input_z != input_do:
         st.write(f"Dystans: **{dystans_wybranej:.2f} km**")
         st.write(f"Azymut: **{wybrany_azymut:.1f}°**")
         st.markdown("---")
-        st.header("Podobne trasy")
+        st.markdown("<h4 style='margin-bottom: 10px;'>Podobne trasy</h4>", unsafe_allow_html=True)
         if podobne.empty:
             st.write("Brak podobnych tras w zadanym zakresie.")
         else:
