@@ -91,9 +91,9 @@ if input_z and input_do and input_z != input_do:
         folium.PolyLine(locations=[[r['start_lat'], r['start_lon']], [r['koniec_lat'], r['koniec_lon']]],
                         color="green", weight=4, opacity=0.6, dash_array='5').add_to(mapa)
 
-    st_folium(mapa, width=1200, height=900)
+    st_folium(mapa, width=800, height=500)
 
 else:
     st.info("Wybierz miejscowości startową i docelową, aby wyświetlić trasę i podobne połączenia.")
     mapa = folium.Map(location=[52.0, 19.0], zoom_start=6, width=1200, height=900)
-    st_folium(mapa, width=1200, height=900)
+    st_folium(mapa, width=800, height=500)
