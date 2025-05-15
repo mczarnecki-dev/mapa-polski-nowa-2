@@ -94,4 +94,4 @@ else:
     st.info("Wybierz miejscowości startową i docelową, aby wyświetlić trasę i podobne połączenia.")
     # Pusta mapa
     mapa = folium.Map(location=[52.0, 19.0], zoom_start=6)
-    st_folium(mapa, width=1000, height=1000)
+    st_folium(mapa, width=1800, height=700)
