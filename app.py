@@ -11,6 +11,10 @@ st.set_page_config(layout="wide")
 miejscowosci = pd.read_csv("miejscowosci_gus_sample.csv")
 trasy = pd.read_csv("trasy.csv")
 
+# --- Jeśli brak dat w pliku, można dodać testowe daty ---
+# trasy['data_wyjazdu'] = '2025-05-10'
+# trasy['data_przyjazdu'] = '2025-05-11'
+
 # --- Funkcje pomocnicze ---
 
 def oblicz_azymut(start_lat, start_lon, end_lat, end_lon):
@@ -111,6 +115,10 @@ if input_z and input_do and input_z != input_do:
         st.write(f"📏 Dystans: **{dystans_wybranej:.2f} km**")
         st.write(f"🧭 Azymut: **{wybrany_azymut:.1f}°**")
 
+        # Dodane daty wybranej trasy
+        st.write(f"📅 Data wyjazdu: **{start_data.get('data_wyjazdu', 'brak danych')}**")
+        st.write(f"📅 Data przyjazdu: **{koniec_data.get('data_przyjazdu', 'brak danych')}**")
+
         st.markdown("---")
 
         st.markdown("<div style='font-size:16px; font-weight:bold; margin-bottom: 10px;'>🔍 Podobne trasy</div>", unsafe_allow_html=True)
@@ -123,6 +131,11 @@ if input_z and input_do and input_z != input_do:
                 st.write(f"➡️ **{r['start_nazwa']}** → **{r['koniec_nazwa']}**")
                 st.write(f"📏 Dystans: {d:.2f} km")
                 st.write(f"🧭 Azymut: {az:.1f}°")
+
+                # Dodane daty dla podobnych tras
+                st.write(f"📅 Data wyjazdu: **{r.get('data_wyjazdu', 'brak danych')}**")
+                st.write(f"📅 Data przyjazdu: **{r.get('data_przyjazdu', 'brak danych')}**")
+
                 st.markdown("---")
 
         st.markdown("</div>", unsafe_allow_html=True)
