@@ -15,7 +15,6 @@ def oblicz_azymut(start_lat, start_lon, end_lat, end_lon):
     lat1 = math.radians(start_lat)
     lat2 = math.radians(end_lat)
     diff_lon = math.radians(end_lon - start_lon)
-
     x = math.sin(diff_lon) * math.cos(lat2)
     y = math.cos(lat1)*math.sin(lat2) - math.sin(lat1)*math.cos(lat2)*math.cos(diff_lon)
     initial_bearing = math.atan2(x, y)
@@ -52,7 +51,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-st.title("Mapa Polski - połączenia i trasy podobne")
+st.title("🗺️ Mapa Polski - połączenia i trasy podobne")
 
 miejscowosci_lista = miejscowosci["Nazwa"].dropna().unique()
 
@@ -81,9 +80,8 @@ if input_z and input_do and input_z != input_do:
 
     srodek_lat = (wybrany_start_lat + wybrany_koniec_lat) / 2
     srodek_lon = (wybrany_start_lon + wybrany_koniec_lon) / 2
-    
-    # Layout kolumn: mapa i panel informacji
-    kol1, kol2 = st.columns([3, 1])  # 3:1 proporcja szerokości
+
+    kol1, kol2 = st.columns([3, 1])
 
     with kol1:
         mapa = folium.Map(location=[srodek_lat, srodek_lon], zoom_start=7)
@@ -104,28 +102,30 @@ if input_z and input_do and input_z != input_do:
     with kol2:
         st.markdown("<div style='font-size:12px;'>", unsafe_allow_html=True)
 
-        st.markdown("<h4 style='margin-bottom: 10px;'>Informacje o wybranej trasie</h4>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size:16px; font-weight:bold; margin-bottom: 10px;'>🧭 Informacje o wybranej trasie</div>", unsafe_allow_html=True)
         dystans_wybranej = dystans_trasy(wybrany_start_lat, wybrany_start_lon, wybrany_koniec_lat, wybrany_koniec_lon)
-        st.write(f"Start: **{input_z}**")
-        st.write(f"Cel: **{input_do}**")
-        st.write(f"Dystans: **{dystans_wybranej:.2f} km**")
-        st.write(f"Azymut: **{wybrany_azymut:.1f}°**")
+        st.write(f"🚩 Start: **{input_z}**")
+        st.write(f"🏁 Cel: **{input_do}**")
+        st.write(f"📏 Dystans: **{dystans_wybranej:.2f} km**")
+        st.write(f"🧭 Azymut: **{wybrany_azymut:.1f}°**")
+
         st.markdown("---")
-        st.markdown("<h4 style='margin-bottom: 10px;'>Podobne trasy</h4>", unsafe_allow_html=True)
+
+        st.markdown("<div style='font-size:16px; font-weight:bold; margin-bottom: 10px;'>🔍 Podobne trasy</div>", unsafe_allow_html=True)
         if podobne.empty:
-            st.write("Brak podobnych tras w zadanym zakresie.")
+            st.write("😕 Brak podobnych tras w zadanym zakresie.")
         else:
             for i, r in podobne.iterrows():
                 d = dystans_trasy(r['start_lat'], r['start_lon'], r['koniec_lat'], r['koniec_lon'])
-                st.write(f"**{r['start_nazwa']}** → **{r['koniec_nazwa']}**")
-                st.write(f"  - Dystans: {d:.2f} km")
                 az = oblicz_azymut(r['start_lat'], r['start_lon'], r['koniec_lat'], r['koniec_lon'])
-                st.write(f"  - Azymut: {az:.1f}°")
+                st.write(f"➡️ **{r['start_nazwa']}** → **{r['koniec_nazwa']}**")
+                st.write(f"📏 Dystans: {d:.2f} km")
+                st.write(f"🧭 Azymut: {az:.1f}°")
                 st.markdown("---")
 
         st.markdown("</div>", unsafe_allow_html=True)
 
 else:
-    st.info("Wybierz miejscowości startową i docelową, aby wyświetlić trasę i podobne połączenia.")
+    st.info("🔎 Wybierz miejscowości **startową** i **docelową**, aby wyświetlić trasę oraz podobne połączenia na mapie.")
     mapa = folium.Map(location=[52.0, 19.0], zoom_start=6)
     st_folium(mapa, width=900, height=700)
