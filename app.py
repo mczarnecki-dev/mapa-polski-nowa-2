@@ -26,9 +26,6 @@ def oblicz_azymut(start_lat, start_lon, end_lat, end_lon):
 def bliskosc_km(p1, p2):
     return geodesic(p1, p2).km
 
-def dystans_trasy(start_lat, start_lon, koniec_lat, koniec_lon):
-    return geodesic((start_lat, start_lon), (koniec_lat, koniec_lon)).km
-
 def trasy_podobne_azymut(trasa_azymut, trasy_df, wybrany_koniec_lat, wybrany_koniec_lon, limit_km=50, limit_azymut=15):
     podobne_trasy = []
     for idx, row in trasy_df.iterrows():
@@ -38,6 +35,9 @@ def trasy_podobne_azymut(trasa_azymut, trasy_df, wybrany_koniec_lat, wybrany_kon
             if bliskosc_km((row['koniec_lat'], row['koniec_lon']), (wybrany_koniec_lat, wybrany_koniec_lon)) <= limit_km:
                 podobne_trasy.append(row)
     return pd.DataFrame(podobne_trasy)
+
+def dystans_trasy(lat1, lon1, lat2, lon2):
+    return bliskosc_km((lat1, lon1), (lat2, lon2))
 
 # --- Styl CSS wymuszający rozmiar mapy ---
 st.markdown(
@@ -52,18 +52,16 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# --- Interfejs ---
-
 st.title("Mapa Polski - połączenia i trasy podobne")
-
-# Dodaj suwaki do filtrów
-limit_azymut = st.slider("Maksymalna różnica azymutu (°)", min_value=0, max_value=45, value=15, step=1)
-limit_km = st.slider("Promień wyszukiwania tras podobnych (km)", min_value=10, max_value=100, value=50, step=5)
 
 miejscowosci_lista = miejscowosci["Nazwa"].dropna().unique()
 
 input_z = st.selectbox("Z (miejsce startowe)", options=miejscowosci_lista)
 input_do = st.selectbox("Do (miejsce docelowe)", options=miejscowosci_lista)
+
+# Dodatkowe suwaki do regulacji filtrów
+limit_km = st.slider("Promień wyszukiwania podobnych tras (km)", min_value=10, max_value=100, value=50, step=5)
+limit_azymut = st.slider("Maksymalna różnica azymutu (stopnie)", min_value=0, max_value=45, value=15, step=1)
 
 if input_z and input_do and input_z != input_do:
     try:
@@ -79,41 +77,49 @@ if input_z and input_do and input_z != input_do:
     wybrany_koniec_lon = koniec_data["Lon"]
 
     wybrany_azymut = oblicz_azymut(wybrany_start_lat, wybrany_start_lon, wybrany_koniec_lat, wybrany_koniec_lon)
-
-    podobne = trasy_podobne_azymut(wybrany_azymut, trasy, wybrany_koniec_lat, wybrany_koniec_lon,
-                                   limit_km=limit_km, limit_azymut=limit_azymut)
+    podobne = trasy_podobne_azymut(wybrany_azymut, trasy, wybrany_koniec_lat, wybrany_koniec_lon, limit_km=limit_km, limit_azymut=limit_azymut)
 
     srodek_lat = (wybrany_start_lat + wybrany_koniec_lat) / 2
     srodek_lon = (wybrany_start_lon + wybrany_koniec_lon) / 2
+    
+    # Layout kolumn: mapa i panel informacji
+    kol1, kol2 = st.columns([3, 1])  # 3:1 proporcja szerokości
 
-    mapa = folium.Map(location=[srodek_lat, srodek_lon], zoom_start=7)
+    with kol1:
+        mapa = folium.Map(location=[srodek_lat, srodek_lon], zoom_start=7)
 
-    # Popup dla wybranej trasy
-    dystans = dystans_trasy(wybrany_start_lat, wybrany_start_lon, wybrany_koniec_lat, wybrany_koniec_lon)
-    czas = dystans / 60  # zakładana prędkość 60 km/h
-    popup_wybrana = folium.Popup(
-        f"<b>Trasa wybrana:</b><br>Start: {input_z}<br>Cel: {input_do}<br>Dystans: {dystans:.1f} km<br>Orientacyjny czas: {czas:.2f} h",
-        max_width=300)
+        folium.Marker([wybrany_start_lat, wybrany_start_lon], tooltip=f"Start: {input_z}", icon=folium.Icon(color='green')).add_to(mapa)
+        folium.Marker([wybrany_koniec_lat, wybrany_koniec_lon], tooltip=f"Cel: {input_do}", icon=folium.Icon(color='red')).add_to(mapa)
+        folium.PolyLine(locations=[[wybrany_start_lat, wybrany_start_lon], [wybrany_koniec_lat, wybrany_koniec_lon]],
+                        color="blue", weight=5, opacity=0.8).add_to(mapa)
 
-    folium.Marker([wybrany_start_lat, wybrany_start_lon], tooltip=f"Start: {input_z}", icon=folium.Icon(color='green')).add_to(mapa)
-    folium.Marker([wybrany_koniec_lat, wybrany_koniec_lon], tooltip=f"Cel: {input_do}", icon=folium.Icon(color='red')).add_to(mapa)
-    folium.PolyLine(locations=[[wybrany_start_lat, wybrany_start_lon], [wybrany_koniec_lat, wybrany_koniec_lon]],
-                    color="blue", weight=5, opacity=0.8, popup=popup_wybrana).add_to(mapa)
+        for _, r in podobne.iterrows():
+            folium.Marker([r['start_lat'], r['start_lon']], tooltip=f"Start: {r['start_nazwa']}", icon=folium.Icon(color='lightgreen')).add_to(mapa)
+            folium.Marker([r['koniec_lat'], r['koniec_lon']], tooltip=f"Cel: {r['koniec_nazwa']}", icon=folium.Icon(color='lightred')).add_to(mapa)
+            folium.PolyLine(locations=[[r['start_lat'], r['start_lon']], [r['koniec_lat'], r['koniec_lon']]],
+                            color="green", weight=4, opacity=0.6, dash_array='5').add_to(mapa)
 
-    # Podobne trasy z popupami
-    for _, r in podobne.iterrows():
-        dyst = dystans_trasy(r['start_lat'], r['start_lon'], r['koniec_lat'], r['koniec_lon'])
-        czas = dyst / 60
-        popup = folium.Popup(
-            f"<b>Trasa podobna:</b><br>Start: {r['start_nazwa']}<br>Cel: {r['koniec_nazwa']}<br>Dystans: {dyst:.1f} km<br>Orientacyjny czas: {czas:.2f} h",
-            max_width=300)
+        st_folium(mapa, width=900, height=700)
 
-        folium.Marker([r['start_lat'], r['start_lon']], tooltip=f"Start: {r['start_nazwa']}", icon=folium.Icon(color='lightgreen')).add_to(mapa)
-        folium.Marker([r['koniec_lat'], r['koniec_lon']], tooltip=f"Cel: {r['koniec_nazwa']}", icon=folium.Icon(color='lightred')).add_to(mapa)
-        folium.PolyLine(locations=[[r['start_lat'], r['start_lon']], [r['koniec_lat'], r['koniec_lon']]],
-                        color="green", weight=4, opacity=0.6, dash_array='5', popup=popup).add_to(mapa)
-
-    st_folium(mapa, width=900, height=700)
+    with kol2:
+        st.header("Informacje o wybranej trasie")
+        dystans_wybranej = dystans_trasy(wybrany_start_lat, wybrany_start_lon, wybrany_koniec_lat, wybrany_koniec_lon)
+        st.write(f"Start: **{input_z}**")
+        st.write(f"Cel: **{input_do}**")
+        st.write(f"Dystans: **{dystans_wybranej:.2f} km**")
+        st.write(f"Azymut: **{wybrany_azymut:.1f}°**")
+        st.markdown("---")
+        st.header("Podobne trasy")
+        if podobne.empty:
+            st.write("Brak podobnych tras w zadanym zakresie.")
+        else:
+            for i, r in podobne.iterrows():
+                d = dystans_trasy(r['start_lat'], r['start_lon'], r['koniec_lat'], r['koniec_lon'])
+                st.write(f"**{r['start_nazwa']}** → **{r['koniec_nazwa']}**")
+                st.write(f"  - Dystans: {d:.2f} km")
+                az = oblicz_azymut(r['start_lat'], r['start_lon'], r['koniec_lat'], r['koniec_lon'])
+                st.write(f"  - Azymut: {az:.1f}°")
+                st.markdown("---")
 
 else:
     st.info("Wybierz miejscowości startową i docelową, aby wyświetlić trasę i podobne połączenia.")
