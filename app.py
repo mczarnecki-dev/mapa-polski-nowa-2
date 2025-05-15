@@ -5,93 +5,93 @@ from streamlit_folium import st_folium
 from geopy.distance import geodesic
 import math
 
-# Przykładowe trasy w pliku CSV (zakładamy, że jest 'trasy.csv' z kolumnami: start, start_lat, start_lon, end, end_lat, end_lon)
-# Dla testów możesz użyć tego pliku:
-# start,start_lat,start_lon,end,end_lat,end_lon
-# Warszawa,52.2297,21.0122,Kraków,50.0647,19.9450
-# Gdańsk,54.3520,18.6466,Wrocław,51.1079,17.0385
-# Poznań,52.4064,16.9252,Lublin,51.2465,22.5684
+# --- Wczytanie danych ---
+miejscowosci = pd.read_csv("miejscowosci_gus_sample.csv")
+trasy = pd.read_csv("trasy.csv")
 
-@st.cache_data
-def wczytaj_trasy():
-    return pd.read_csv('trasy.csv')
+# --- Funkcje pomocnicze ---
 
-def azymut(p1, p2):
-    # Oblicza azymut (kąt) między dwoma punktami geograficznymi w stopniach (0-360)
-    lat1, lon1 = math.radians(p1[0]), math.radians(p1[1])
-    lat2, lon2 = math.radians(p2[0]), math.radians(p2[1])
-    dLon = lon2 - lon1
+def oblicz_azymut(start_lat, start_lon, end_lat, end_lon):
+    # Oblicza azymut (kąt) między dwoma punktami w stopniach od północy (0-360)
+    lat1 = math.radians(start_lat)
+    lat2 = math.radians(end_lat)
+    diff_lon = math.radians(end_lon - start_lon)
 
-    x = math.sin(dLon) * math.cos(lat2)
-    y = math.cos(lat1)*math.sin(lat2) - math.sin(lat1)*math.cos(lat2)*math.cos(dLon)
-    brng = math.atan2(x, y)
-    brng = math.degrees(brng)
-    return (brng + 360) % 360
+    x = math.sin(diff_lon) * math.cos(lat2)
+    y = math.cos(lat1)*math.sin(lat2) - math.sin(lat1)*math.cos(lat2)*math.cos(diff_lon)
+    initial_bearing = math.atan2(x, y)
+    bearing = math.degrees(initial_bearing)
+    compass_bearing = (bearing + 360) % 360
+    return compass_bearing
 
-def podobny_azymut(a1, a2, tolerancja=20):
-    # Sprawdza, czy dwa azymuty są podobne (w granicy ±tolerancja stopni)
-    diff = abs(a1 - a2)
-    return diff <= tolerancja or diff >= 360 - tolerancja
+def bliskosc_km(p1, p2):
+    return geodesic(p1, p2).km
 
-st.title("Interaktywna mapa tras w Polsce")
+def trasy_podobne_azymut(trasa_azymut, trasy_df, limit_km=50, limit_azymut=15):
+    podobne_trasy = []
+    for idx, row in trasy_df.iterrows():
+        azymut_istniejacy = oblicz_azymut(row['start_lat'], row['start_lon'], row['koniec_lat'], row['koniec_lon'])
+        # Sprawdz różnicę azymutu (kierunku)
+        roznica_azymutu = min(abs(azymut_istniejacy - trasa_azymut), 360 - abs(azymut_istniejacy - trasa_azymut))
+        if roznica_azymutu <= limit_azymut:
+            # Sprawdź czy miejsce końcowe jest w promieniu limit_km
+            if bliskosc_km((row['koniec_lat'], row['koniec_lon']), (wybrany_koniec_lat, wybrany_koniec_lon)) <= limit_km:
+                podobne_trasy.append(row)
+    return pd.DataFrame(podobne_trasy)
 
-trasy = wczytaj_trasy()
+# --- Interfejs ---
 
-input_z = st.text_input("Z (miejsce startowe)")
-input_do = st.text_input("Do (miejsce docelowe)")
+st.title("Mapa Polski - połączenia i trasy podobne")
 
-if input_z and input_do:
-    # Znajdź współrzędne wpisanych miejsc (w danych tras szukamy)
-    start = trasy[(trasy['start'].str.lower() == input_z.lower()) | (trasy['end'].str.lower() == input_z.lower())]
-    koniec = trasy[(trasy['start'].str.lower() == input_do.lower()) | (trasy['end'].str.lower() == input_do.lower())]
+# Lista nazw miejscowości unikalnych do wyboru
+miejscowosci_lista = miejscowosci["Nazwa"].dropna().unique()
 
-    if start.empty or koniec.empty:
-        st.warning("Nie znaleziono miejscowości w danych tras.")
-    else:
-        # Weź współrzędne miejsc z inputów (bierzemy pierwsze dopasowanie)
-        def znajdz_wspolrzedne(nazwa):
-            # szukaj w kolumnie start
-            w = trasy[trasy['start'].str.lower() == nazwa.lower()]
-            if not w.empty:
-                return (w.iloc[0]['start_lat'], w.iloc[0]['start_lon'])
-            # szukaj w kolumnie end
-            w = trasy[trasy['end'].str.lower() == nazwa.lower()]
-            if not w.empty:
-                return (w.iloc[0]['end_lat'], w.iloc[0]['end_lon'])
-            return None
+input_z = st.selectbox("Z (miejsce startowe)", options=miejscowosci_lista)
+input_do = st.selectbox("Do (miejsce docelowe)", options=miejscowosci_lista)
 
-        wsp_z = znajdz_wspolrzedne(input_z)
-        wsp_do = znajdz_wspolrzedne(input_do)
+if input_z and input_do and input_z != input_do:
 
-        if not wsp_z or not wsp_do:
-            st.warning("Nie znaleziono współrzędnych dla wybranych miejsc.")
-        else:
-            # Oblicz azymut wybranej trasy
-            az = azymut(wsp_z, wsp_do)
+    # Pobierz współrzędne miejscowości start i koniec z miejscowosci
+    try:
+        start_data = miejscowosci[miejscowosci["Nazwa"] == input_z].iloc[0]
+        koniec_data = miejscowosci[miejscowosci["Nazwa"] == input_do].iloc[0]
+    except IndexError:
+        st.error("Nie znaleziono współrzędnych dla wybranych miejscowości.")
+        st.stop()
 
-            mapa = folium.Map(location=[(wsp_z[0]+wsp_do[0])/2, (wsp_z[1]+wsp_do[1])/2], zoom_start=6)
+    wybrany_start_lat = start_data["Lat"]
+    wybrany_start_lon = start_data["Lon"]
+    wybrany_koniec_lat = koniec_data["Lat"]
+    wybrany_koniec_lon = koniec_data["Lon"]
 
-            # Dodaj linię wybranej trasy
-            folium.Marker(wsp_z, tooltip="Start: " + input_z, icon=folium.Icon(color='green')).add_to(mapa)
-            folium.Marker(wsp_do, tooltip="Cel: " + input_do, icon=folium.Icon(color='red')).add_to(mapa)
-            folium.PolyLine(locations=[wsp_z, wsp_do], color='blue', weight=5).add_to(mapa)
+    # Oblicz azymut dla wybranej trasy
+    wybrany_azymut = oblicz_azymut(wybrany_start_lat, wybrany_start_lon, wybrany_koniec_lat, wybrany_koniec_lon)
 
-            # Szukaj tras podobnych:
-            for _, row in trasy.iterrows():
-                p_start = (row['start_lat'], row['start_lon'])
-                p_end = (row['end_lat'], row['end_lon'])
-                az_trasa = azymut(p_start, p_end)
+    # Znajdź trasy podobne
+    podobne = trasy_podobne_azymut(wybrany_azymut, trasy)
 
-                # Sprawdź, czy trasy zmierzają w podobnym kierunku i ich końce są blisko (50 km)
-                dist = geodesic(p_end, wsp_do).km
-                if podobny_azymut(az, az_trasa) and dist <= 50:
-                    folium.Marker(p_start, tooltip="Start istniejącej trasy: " + row['start'], icon=folium.Icon(color='gray')).add_to(mapa)
-                    folium.Marker(p_end, tooltip="Koniec istniejącej trasy: " + row['end'], icon=folium.Icon(color='darkred')).add_to(mapa)
-                    folium.PolyLine(locations=[p_start, p_end], color='gray', weight=3, dash_array='5').add_to(mapa)
+    # Utwórz mapę na środek wybranej trasy
+    srodek_lat = (wybrany_start_lat + wybrany_koniec_lat) / 2
+    srodek_lon = (wybrany_start_lon + wybrany_koniec_lon) / 2
+    mapa = folium.Map(location=[srodek_lat, srodek_lon], zoom_start=7)
 
-            st_folium(mapa, width=700, height=500)
+    # Dodaj wybraną trasę
+    folium.Marker([wybrany_start_lat, wybrany_start_lon], tooltip=f"Start: {input_z}", icon=folium.Icon(color='green')).add_to(mapa)
+    folium.Marker([wybrany_koniec_lat, wybrany_koniec_lon], tooltip=f"Cel: {input_do}", icon=folium.Icon(color='red')).add_to(mapa)
+    folium.PolyLine(locations=[[wybrany_start_lat, wybrany_start_lon], [wybrany_koniec_lat, wybrany_koniec_lon]],
+                    color="blue", weight=5, opacity=0.8).add_to(mapa)
+
+    # Dodaj podobne trasy (zielone)
+    for _, r in podobne.iterrows():
+        folium.Marker([r['start_lat'], r['start_lon']], tooltip=f"Start: {r['start_nazwa']}", icon=folium.Icon(color='lightgreen')).add_to(mapa)
+        folium.Marker([r['koniec_lat'], r['koniec_lon']], tooltip=f"Cel: {r['koniec_nazwa']}", icon=folium.Icon(color='lightred')).add_to(mapa)
+        folium.PolyLine(locations=[[r['start_lat'], r['start_lon']], [r['koniec_lat'], r['koniec_lon']]],
+                        color="green", weight=4, opacity=0.6, dash_array='5').add_to(mapa)
+
+    st_folium(mapa, width=700, height=500)
 
 else:
-    # Pusta mapa na start
-    mapa = folium.Map(location=[52.237049, 21.017532], zoom_start=6)
+    st.info("Wybierz miejscowości startową i docelową, aby wyświetlić trasę i podobne połączenia.")
+    # Pusta mapa
+    mapa = folium.Map(location=[52.0, 19.0], zoom_start=6)
     st_folium(mapa, width=700, height=500)
