@@ -104,7 +104,7 @@ if input_z and input_do and input_z != input_do:
     with kol2:
         st.markdown("<div style='font-size:12px;'>", unsafe_allow_html=True)
 
-        st.header("Informacje o wybranej trasie")
+        st.markdown("<h4 style='margin-bottom: 10px;'>Informacje o wybranej trasie</h4>", unsafe_allow_html=True)
         dystans_wybranej = dystans_trasy(wybrany_start_lat, wybrany_start_lon, wybrany_koniec_lat, wybrany_koniec_lon)
         st.write(f"Start: **{input_z}**")
         st.write(f"Cel: **{input_do}**")
