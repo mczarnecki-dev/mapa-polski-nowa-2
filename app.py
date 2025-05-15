@@ -65,8 +65,8 @@ input_z = st.selectbox("Z (miejsce startowe)", options=miejscowosci_lista)
 input_do = st.selectbox("Do (miejsce docelowe)", options=miejscowosci_lista)
 
 # Dodatkowe suwaki do regulacji filtrów
-limit_km = st.slider("Promień wyszukiwania podobnych tras (km)", min_value=10, max_value=100, value=50, step=5)
-limit_azymut = st.slider("Maksymalna różnica azymutu (stopnie)", min_value=0, max_value=45, value=15, step=1)
+limit_km = st.slider("Promień wyszukiwania podobnych tras (km)", min_value=10, max_value=200, value=50, step=5)
+limit_azymut = st.slider("Maksymalna różnica azymutu (stopnie)", min_value=0, max_value=50, value=15, step=1)
 
 if input_z and input_do and input_z != input_do:
     try:
