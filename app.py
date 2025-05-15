@@ -5,6 +5,8 @@ from streamlit_folium import st_folium
 from geopy.distance import geodesic
 import math
 
+st.set_page_config(layout="wide")
+
 # --- Wczytanie danych ---
 miejscowosci = pd.read_csv("miejscowosci_gus_sample.csv")
 trasy = pd.read_csv("trasy.csv")
