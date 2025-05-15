@@ -27,7 +27,7 @@ def oblicz_azymut(start_lat, start_lon, end_lat, end_lon):
 def bliskosc_km(p1, p2):
     return geodesic(p1, p2).km
 
-def trasy_podobne_azymut(trasa_azymut, trasy_df, limit_km=50, limit_azymut=15):
+def trasy_podobne_azymut(trasa_azymut, trasy_df, limit_km=80, limit_azymut=25):
     podobne_trasy = []
     for idx, row in trasy_df.iterrows():
         azymut_istniejacy = oblicz_azymut(row['start_lat'], row['start_lon'], row['koniec_lat'], row['koniec_lon'])
@@ -88,10 +88,10 @@ if input_z and input_do and input_z != input_do:
         folium.PolyLine(locations=[[r['start_lat'], r['start_lon']], [r['koniec_lat'], r['koniec_lon']]],
                         color="green", weight=4, opacity=0.6, dash_array='5').add_to(mapa)
 
-    st_folium(mapa, width=700, height=500)
+    st_folium(mapa, width=2000, height=700)
 
 else:
     st.info("Wybierz miejscowości startową i docelową, aby wyświetlić trasę i podobne połączenia.")
     # Pusta mapa
     mapa = folium.Map(location=[52.0, 19.0], zoom_start=6)
-    st_folium(mapa, width=2000, height=700)
+    st_folium(mapa, width=700, height=500)
